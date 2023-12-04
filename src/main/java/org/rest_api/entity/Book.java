@@ -3,14 +3,14 @@ package org.rest_api.entity;
 public class Book {
     private int id;
     private String title;
-    private String author;
+    private int authorId;
     private double price;
     private int quantity;
 
-    public Book(int id, String title, String author, double price, int quantity) {
+    public Book(int id, String title, int authorId, double price, int quantity) {
         this.id = id;
         this.title = title;
-        this.author = author;
+        this.authorId = authorId;
         this.price = price;
         this.quantity = quantity;
     }
@@ -34,12 +34,12 @@ public class Book {
         this.title = title;
     }
 
-    public String getAuthor() {
-        return author;
+    public int getAuthorId() {
+        return authorId;
     }
 
-    public void setAuthor(String author) {
-        this.author = author;
+    public void setAuthorId(int authorId) {
+        this.authorId = authorId;
     }
 
     public double getPrice() {

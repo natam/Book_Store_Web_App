@@ -1,35 +1,38 @@
 package org.rest_api.dao;
 
 import org.rest_api.db_connection.DBConnection;
+import org.rest_api.entity.Author;
 import org.rest_api.entity.Book;
 
+import javax.ws.rs.Path;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookDao {
-    public List<Book> getBooks(int offset, int limit) {
-        List<Book> bookstList = new ArrayList<>();
+public class AuthorDao {
+    public List<Author> getAuthors(int offset, int limit) {
+        List<Author> authorList = new ArrayList<>();
         try (Connection connection = DBConnection.getConnection()) {
-            String sql = "SELECT * FROM Books LIMIT ? OFFSET ?";
+            String sql = "SELECT * FROM Authors LIMIT ? OFFSET ?;";
             PreparedStatement stmt = connection.prepareStatement(sql);
             stmt.setInt(1, limit);
             stmt.setInt(2, offset);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
-                bookstList.add(book);
+                Author author = new Author(rs.getInt("id"), rs.getString("name"), rs.getString("country"));
+                authorList.add(author);
+                System.out.println(authorList.size());
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return bookstList;
+        return authorList;
     }
 
-    public int getBooksCount() {
+    public int getAuthorsCount() {
         int rows = 0;
         try (Connection connection = DBConnection.getConnection()) {
-            String sql = "SELECT COUNT(*) FROM Books";
+            String sql = "SELECT COUNT(*) FROM Authors;";
             Statement st = connection.createStatement();
             ResultSet resultSet = st.executeQuery(sql);
             resultSet.next();
@@ -59,13 +62,13 @@ public class BookDao {
 //        return orderstList;
 //    }
 
-    public Book getBook(int id) {
+    public Author getAuthor(int id) {
         try (Connection connection = DBConnection.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("SELECT * FROM Books WHERE id = ?");
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM Authors WHERE id = ?;");
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
+                return new Author(rs.getInt("id"), rs.getString("name"), rs.getString("country"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -73,39 +76,55 @@ public class BookDao {
         return null;
     }
 
-    public void addBook(Book book) {
+    public List<Book> getAuthorBooks(int authorId) {
+        List<Book> books = new ArrayList<>();
+        try (Connection connection = DBConnection.getConnection()) {
+            String sql = "SELECT Books.id, title, price, quantity, authorId, name AS authorName, country " +
+                    "FROM Books " +
+                    "JOIN Authors ON Authors.id = Books.authorId " +
+                    "WHERE authorId = ?;";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, authorId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
+                books.add(book);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return books;
+    }
+
+    public void addAuthor(Author author) {
         try (Connection connection = DBConnection.getConnection()) {
             connection.setAutoCommit(false);
-            String addBookSql = "INSERT INTO Books (title, authorId, price, quantity) VALUES (?, ?, ?, ?)";
+            String addBookSql = "INSERT INTO Authors (name, country) VALUES (?, ?);";
 
             PreparedStatement insertBook = connection.prepareStatement(addBookSql);
-            insertBook.setString(1, book.getTitle());
-            insertBook.setInt(2, book.getAuthorId());
-            insertBook.setDouble(3, book.getPrice());
-            insertBook.setInt(4, book.getQuantity());
+            insertBook.setString(1, author.getName());
+            insertBook.setString(2, author.getCountry());
             insertBook.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public void updateBook(Book book) {
+    public void updateAuthor(Author author) {
         try (Connection connection = DBConnection.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("UPDATE Books SET title = ?, authorId = ?, price = ?, quantity = ? WHERE id = ?");
-            ps.setString(1, book.getTitle());
-            ps.setInt(2, book.getAuthorId());
-            ps.setDouble(3, book.getPrice());
-            ps.setInt(4, book.getQuantity());
-            ps.setInt(5, book.getId());
+            PreparedStatement ps = connection.prepareStatement("UPDATE Authors SET name = ?, country = ? WHERE id = ?;");
+            ps.setString(1, author.getName());
+            ps.setString(2, author.getCountry());
+            ps.setInt(3, author.getId());
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public void deleteBook(int id) {
+    public void deleteAuthor(int id) {
         try (Connection connection = DBConnection.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("DELETE FROM Books WHERE id = ?");
+            PreparedStatement ps = connection.prepareStatement("DELETE FROM Authors WHERE id = ?;");
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
