@@ -8,7 +8,6 @@ import org.rest_api.dao.AuthorDao;
 import org.rest_api.dao.BookAuthorDao;
 import org.rest_api.entity.Author;
 import org.rest_api.entity.Book;
-import org.rest_api.error_handling.ErrorResponse;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -25,17 +24,21 @@ public class AuthorResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAuthors(@QueryParam("offset") int offset,
-                             @QueryParam("limit") int limit) {
-        int authorsCount = authorDao.getAuthorsCount();
-        Gson gson = new Gson();
-        JsonObject response = new JsonObject();
-        List<Author> authors = authorDao.getAuthors(offset, limit);
-        System.out.println(authors.size());
-        response.add("items", gson.toJsonTree(authors));
-        response.addProperty("total", authorsCount);
-        response.addProperty("offset", offset);
-        response.addProperty("limit", limit);
-        return Response.ok(response.toString()).build();
+                               @QueryParam("limit") int limit) {
+        try {
+            int authorsCount = authorDao.getAuthorsCount();
+            Gson gson = new Gson();
+            JsonObject response = new JsonObject();
+            List<Author> authors = authorDao.getAuthors(offset, limit);
+            System.out.println(authors.size());
+            response.add("items", gson.toJsonTree(authors));
+            response.addProperty("total", authorsCount);
+            response.addProperty("offset", offset);
+            response.addProperty("limit", limit);
+            return Response.ok(response.toString()).build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
+        }
     }
 
     @GET
@@ -48,71 +51,87 @@ public class AuthorResource {
                                @QueryParam("priceTo") double priceTo,
                                @QueryParam("authorName") String authorName,
                                @QueryParam("authorCountry") String authorCountry
-                               ) {
+    ) {
         int authorsCount = 0;
         try {
             authorsCount = bookAuthorDao.getRowsCount(bookTitle, priceFrom, priceTo, authorName, authorCountry);
+            Gson gson = new Gson();
+            JsonObject response = new JsonObject();
+            Map<Author, List<Book>> authors = bookAuthorDao.getBooksByAuthor(bookTitle, priceFrom, priceTo, authorName, authorCountry, limit, offset);
+            JsonArray authorsArray = new JsonArray();
+            for (Map.Entry entry : authors.entrySet()) {
+                JsonObject author = new JsonObject();
+                author = JsonParser.parseString(gson.toJson(entry.getKey())).getAsJsonObject();
+                author.add("books", gson.toJsonTree(entry.getValue()));
+                authorsArray.add(author);
+            }
+            response.add("items", authorsArray);
+            response.addProperty("total", authorsCount);
+            response.addProperty("offset", offset);
+            response.addProperty("limit", limit);
+            return Response.ok(response.toString()).build();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            return Response.status(500, e.getMessage()).build();
         }
-        Gson gson = new Gson();
-        JsonObject response = new JsonObject();
-        Map<Author, List<Book>> authors = bookAuthorDao.getBooksByAuthor(bookTitle, priceFrom, priceTo, authorName, authorCountry, limit, offset);
-        JsonArray authorsArray = new JsonArray();
-        for(Map.Entry entry: authors.entrySet()){
-            JsonObject author = new JsonObject();
-            author = JsonParser.parseString(gson.toJson(entry.getKey())).getAsJsonObject();
-            author.add("books", gson.toJsonTree(entry.getValue()));
-            authorsArray.add(author);
-        }
-        response.add("items", authorsArray);
-        response.addProperty("total", authorsCount);
-        response.addProperty("offset", offset);
-        response.addProperty("limit", limit);
-        return Response.ok(response.toString()).build();
     }
 
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAuthorById(@PathParam("id") int id){
-        Author author = authorDao.getAuthor(id);
-        if(author != null){
+    public Response getAuthorById(@PathParam("id") int id) {
+        try {
+            Author author = authorDao.getAuthor(id);
             return Response.ok(author).build();
-        }else {
-            return Response.status(404)
-                    .entity(new ErrorResponse(Response.Status.NOT_FOUND.name(),
-                            "Author with id " + id + " not found"))
-                    .build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
         }
     }
 
     @GET
     @Path("/{id}/books")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAuthorBooks(@PathParam("id") int id){
-        List<Book> books = authorDao.getAuthorBooks(id);
-        return Response.ok(new Gson().toJson(books)).build();
+    public Response getAuthorBooks(@PathParam("id") int id) {
+        try {
+            List<Book> books = authorDao.getAuthorBooks(id);
+            return Response.ok(new Gson().toJson(books)).build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
+        }
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Response addAuthor(Author author) {
-        authorDao.addAuthor(author);
-        return Response.status(201).build();
+        try{
+            authorDao.addAuthor(author);
+            return Response.status(201).build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
+        }
+
     }
 
     @PUT
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateAuthor(@PathParam("id") int id, Author author) {
-        author.setId(id);
-        authorDao.updateAuthor(author);
+    public Response updateAuthor(@PathParam("id") int id, Author author) {
+        try {
+            author.setId(id);
+            authorDao.updateAuthor(author);
+            return Response.ok().build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
+        }
     }
 
     @DELETE
     @Path("/{id}")
-    public void deleteAuthor(@PathParam("id") int id) {
-        authorDao.deleteAuthor(id);
+    public Response deleteAuthor(@PathParam("id") int id) {
+        try {
+            authorDao.deleteAuthor(id);
+            return Response.ok().build();
+        } catch (SQLException e) {
+            return Response.status(500, e.getMessage()).build();
+        }
     }
 }

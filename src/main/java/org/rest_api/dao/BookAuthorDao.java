@@ -11,42 +11,40 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class BookAuthorDao {
-    public Map<Author, List<Book>> getBooksByAuthor(String bookTitle, double priceFrom, double priceTo, String authorName, String authorCountry, int limit, int offset) {
+    public Map<Author, List<Book>> getBooksByAuthor(String bookTitle, double priceFrom, double priceTo, String authorName, String authorCountry, int limit, int offset) throws SQLException {
         Map<Author, List<Book>> booksList = new HashMap<>();
         String sql = "SELECT Books.id, title, price, quantity, authorId, name AS authorName, country " +
                 "FROM Authors " +
                 "JOIN Books ON Authors.id = Books.authorId";
-        try (Connection connection = DBConnection.getConnection()) {
-            PreparedStatement stmt = getQueryStatement(connection, sql, bookTitle, priceFrom, priceTo, authorName, authorCountry, limit, offset);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
-                Author author = new Author(rs.getInt("authorId"), rs.getString("authorName"), rs.getString("country"));
-                if (booksList.containsKey(author)) {
-                    booksList.get(author).add(book);
-                } else {
-                    booksList.put(author, List.of(book));
-                }
+        Connection connection = DBConnection.getConnection();
+        PreparedStatement stmt = getQueryStatement(connection, sql, bookTitle, priceFrom, priceTo, authorName, authorCountry, limit, offset);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
+            Author author = new Author(rs.getInt("authorId"), rs.getString("authorName"), rs.getString("country"));
+            if (booksList.containsKey(author)) {
+                booksList.get(author).add(book);
+            } else {
+                booksList.put(author, List.of(book));
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
+        connection.close();
         return booksList;
     }
 
     public Map<Book, Author> getBookAndAuthor(String bookTitle, double priceFrom, double priceTo, String authorName, String country, int limit, int offset) throws SQLException {
         Map<Book, Author> booksList = new HashMap<>();
         Connection connection = DBConnection.getConnection();
-            String sql = "SELECT Books.id, title, price, quantity, authorId, name AS authorName, country " +
-                    "FROM Authors " +
-                    "JOIN Books ON Authors.id = Books.authorId";
-            PreparedStatement stmt = getQueryStatement(connection, sql, bookTitle, priceFrom, priceTo, authorName, country, limit, offset);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
-                Author author = new Author(rs.getInt("authorId"), rs.getString("authorName"), rs.getString("country"));
-                booksList.putIfAbsent(book, author);
-            }
+        String sql = "SELECT Books.id, title, price, quantity, authorId, name AS authorName, country " +
+                "FROM Authors " +
+                "JOIN Books ON Authors.id = Books.authorId";
+        PreparedStatement stmt = getQueryStatement(connection, sql, bookTitle, priceFrom, priceTo, authorName, country, limit, offset);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            Book book = new Book(rs.getInt("id"), rs.getString("title"), rs.getInt("authorId"), rs.getDouble("price"), rs.getInt("quantity"));
+            Author author = new Author(rs.getInt("authorId"), rs.getString("authorName"), rs.getString("country"));
+            booksList.putIfAbsent(book, author);
+        }
         connection.close();
         return booksList;
     }
