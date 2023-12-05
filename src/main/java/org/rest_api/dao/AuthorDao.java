@@ -4,7 +4,6 @@ import org.rest_api.db_connection.DBConnection;
 import org.rest_api.entity.Author;
 import org.rest_api.entity.Book;
 
-import javax.ws.rs.Path;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,25 +41,6 @@ public class AuthorDao {
         }
         return rows;
     }
-
-//    public List<Book> getOrdersByCustomer(int offset, int limit, String customer) {
-//        List<Order> orderstList = new ArrayList<>();
-//        try (Connection connection = DBConnection.getConnection()) {
-//            String sql = "SELECT * FROM Orders LIMIT ? OFFSET ? WHERE customer = ?";
-//            PreparedStatement stmt = connection.prepareStatement(sql);
-//            stmt.setInt(1, limit);
-//            stmt.setInt(2, offset);
-//            stmt.setString(3, customer);
-//            ResultSet rs = stmt.executeQuery();
-//            while (rs.next()) {
-//                Order order = new Order(rs.getInt("id"), rs.getInt("productId"), rs.getInt("quantity"), rs.getString("customer"));
-//                orderstList.add(order);
-//            }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-//        return orderstList;
-//    }
 
     public Author getAuthor(int id) {
         try (Connection connection = DBConnection.getConnection()) {

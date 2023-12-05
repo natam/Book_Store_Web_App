@@ -1,8 +1,11 @@
 package org.rest_api.rest_resources;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.rest_api.dao.AuthorDao;
+import org.rest_api.dao.BookAuthorDao;
 import org.rest_api.entity.Author;
 import org.rest_api.entity.Book;
 import org.rest_api.error_handling.ErrorResponse;
@@ -10,11 +13,14 @@ import org.rest_api.error_handling.ErrorResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 @Path("/authors")
 public class AuthorResource {
     private final AuthorDao authorDao = new AuthorDao();
+    private final BookAuthorDao bookAuthorDao = new BookAuthorDao();
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -26,6 +32,40 @@ public class AuthorResource {
         List<Author> authors = authorDao.getAuthors(offset, limit);
         System.out.println(authors.size());
         response.add("items", gson.toJsonTree(authors));
+        response.addProperty("total", authorsCount);
+        response.addProperty("offset", offset);
+        response.addProperty("limit", limit);
+        return Response.ok(response.toString()).build();
+    }
+
+    @GET
+    @Path("/all")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAuthors(@QueryParam("offset") int offset,
+                               @QueryParam("limit") int limit,
+                               @QueryParam("bookTitle") String bookTitle,
+                               @QueryParam("priceFrom") double priceFrom,
+                               @QueryParam("priceTo") double priceTo,
+                               @QueryParam("authorName") String authorName,
+                               @QueryParam("authorCountry") String authorCountry
+                               ) {
+        int authorsCount = 0;
+        try {
+            authorsCount = bookAuthorDao.getRowsCount(bookTitle, priceFrom, priceTo, authorName, authorCountry);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        Gson gson = new Gson();
+        JsonObject response = new JsonObject();
+        Map<Author, List<Book>> authors = bookAuthorDao.getBooksByAuthor(bookTitle, priceFrom, priceTo, authorName, authorCountry, limit, offset);
+        JsonArray authorsArray = new JsonArray();
+        for(Map.Entry entry: authors.entrySet()){
+            JsonObject author = new JsonObject();
+            author = JsonParser.parseString(gson.toJson(entry.getKey())).getAsJsonObject();
+            author.add("books", gson.toJsonTree(entry.getValue()));
+            authorsArray.add(author);
+        }
+        response.add("items", authorsArray);
         response.addProperty("total", authorsCount);
         response.addProperty("offset", offset);
         response.addProperty("limit", limit);
